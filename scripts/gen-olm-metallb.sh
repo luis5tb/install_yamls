@@ -31,13 +31,8 @@ if [ ! -d ${DEPLOY_DIR} ]; then
     mkdir -p ${DEPLOY_DIR}
 fi
 
-if [ -z "${INTERFACE}" ]; then
-    echo "Please set INTERFACE"; exit 1
-fi
-
 echo OPERATOR_DIR ${OPERATOR_DIR}
 echo DEPLOY_DIR ${DEPLOY_DIR}
-echo INTERFACE ${INTERFACE}
 
 cat > ${OPERATOR_DIR}/operatorgroup.yaml <<EOF_CAT
 apiVersion: operators.coreos.com/v1
@@ -109,6 +104,17 @@ metadata:
 spec:
   addresses:
   - 172.19.0.80-172.19.0.90
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  namespace: metallb-system
+  name: ospnetworks
+spec:
+  addresses:
+  - 172.16.100.0/24
+  - 172.16.200.0/24
+  - 172.16.201.0/24
 EOF_CAT
 
 cat > ${DEPLOY_DIR}/l2advertisement.yaml <<EOF_CAT
@@ -124,4 +130,31 @@ spec:
   - internalapi
   - tenant
   - storage
+EOF_CAT
+
+cat > ${DEPLOY_DIR}/bgp-advertisement.yaml <<EOF_CAT
+---
+apiVersion: metallb.io/v1beta1
+kind: BGPAdvertisement
+metadata:
+  name: bgpadvertisement
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - ospnetworks
+  aggregationLenght: 32
+EOF_CAT
+
+cat > ${DEPLOY_DIR}/bgp-peers.yaml <<EOF_CAT
+---
+apiVersion: metallb.io/v1beta2
+kind: BGPPeer
+metadata:
+  name: bgp-peer
+  namespace: metallb-system
+spec:
+  myASN: 64999
+  peerASN: 64999
+  peerAddress: 100.65.4.1
+  password: f00barZ
 EOF_CAT

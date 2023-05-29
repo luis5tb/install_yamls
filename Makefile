@@ -1437,19 +1437,23 @@ metallb: ## installs metallb operator in the metallb-system namespace
 .PHONY: metallb_config
 metallb_config: export NAMESPACE=metallb-system
 metallb_config: export INTERFACE=${NNCP_INTERFACE}
-metallb_config: ## creates the IPAddressPools and l2advertisement resources
+metallb_config: ## creates the IPAddressPools, bgp-advertisement and bgp-peers resources
 	$(eval $(call vars,$@,metallb))
 	bash scripts/gen-olm-metallb.sh
 	oc apply -f ${DEPLOY_DIR}/ipaddresspools.yaml
-	oc apply -f ${DEPLOY_DIR}/l2advertisement.yaml
+    oc apply -f ${DEPLOY_DIR}/l2advertisement.yaml
+	oc apply -f ${DEPLOY_DIR}/bgp-advertisement.yaml
+	oc apply -f ${DEPLOY_DIR}/bgp-peers.yaml
 
 .PHONY: metallb_config_cleanup
 metallb_config_cleanup: export NAMESPACE=metallb-system
-metallb_config_cleanup: ## deletes the IPAddressPools and l2advertisement resources
+metallb_config_cleanup: ## deletes the IPAddressPools, bgpadvertisement and bgp-peers resources
 	$(eval $(call vars,$@,metallb))
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/ipaddresspools.yaml
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/l2advertisement.yaml
-	${CLEANUP_DIR_CMD} ${DEPLOY_DIR}/ipaddresspools.yaml ${DEPLOY_DIR}/l2advertisement.yaml
+	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgp-advertisement.yaml
+	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgp-peers.yaml
+	${CLEANUP_DIR_CMD} ${DEPLOY_DIR}/ipaddresspools.yaml ${DEPLOY_DIR}/l2advertisement.yaml ${DEPLOY_DIR}/bgp-advertisement.yaml ${DEPLOY_DIR}/bgp-peers.yaml
 
 ##@ MANILA
 .PHONY: manila_prep
