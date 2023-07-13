@@ -89,6 +89,95 @@ if [ -n "$NAME" ]; then
 EOF
 fi
 
+if [ -n "$BGP" ]; then
+    cat <<EOF >>kustomization.yaml
+    - op: add
+      path: /spec/networks/0
+      value:
+          name: BgpNet1
+          dnsDomain: bgpnet1.example.com
+          subnets:
+          - name: subnet1
+            allocationRanges:
+            - end: 100.65.1.6
+              start: 100.65.1.5
+            cidr: 100.65.1.4/30
+            gateway: 100.65.1.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.65.1.5
+          - name: subnet2
+            allocationRanges:
+            - end: 100.65.2.6
+              start: 100.65.2.5
+            cidr: 100.65.2.4/30
+            gateway: 100.65.2.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.65.2.5
+          - name: subnet3
+            allocationRanges:
+            - end: 100.65.3.6
+              start: 100.65.3.5
+            cidr: 100.65.3.4/30
+            gateway: 100.65.3.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.65.3.5
+          - name: subnet4
+            allocationRanges:
+            - end: 100.65.4.6
+              start: 100.65.4.5
+            cidr: 100.65.4.4/30
+            gateway: 100.65.4.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.65.4.5
+    - op: add
+      path: /spec/networks/1
+      value:
+          name: BgpNet2
+          dnsDomain: bgpnet2.example.com
+          subnets:
+          - name: subnet1
+            allocationRanges:
+            - end: 100.64.1.6
+              start: 100.64.1.5
+            cidr: 100.64.1.4/30
+            gateway: 100.64.1.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.64.1.5
+          - name: subnet2
+            allocationRanges:
+            - end: 100.64.2.6
+              start: 100.64.2.5
+            cidr: 100.64.2.4/30
+            gateway: 100.64.2.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.64.2.5
+          - name: subnet3
+            allocationRanges:
+            - end: 100.64.3.6
+              start: 100.64.3.5
+            cidr: 100.64.3.4/30
+            gateway: 100.64.3.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.64.3.5
+          - name: subnet4
+            allocationRanges:
+            - end: 100.64.4.6
+              start: 100.64.4.5
+            cidr: 100.64.4.4/30
+            gateway: 100.64.4.5
+            routes:
+            - destination: 0.0.0.0/0
+              nexthop: 100.64.4.5
+EOF
+fi
+
 kustomization_add_resources
 
 popd

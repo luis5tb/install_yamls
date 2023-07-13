@@ -132,6 +132,32 @@ spec:
       name: ${INTERFACE}
       state: up
       type: ethernet
+    - description: Configuring enp7s0
+      ipv4:
+        address:
+        - ip: 100.65.4.2
+          prefix-length: 30
+        enabled: true
+        dhcp: false
+      ipv6:
+        enabled: false
+      mtu: ${INTERFACE_MTU}
+      name: enp7s0
+      state: up
+      type: ethernet
+    - description: Configuring enp8s0
+      ipv4:
+        address:
+        - ip: 100.64.4.2
+          prefix-length: 30
+        enabled: true
+        dhcp: false
+      ipv6:
+        enabled: false
+      mtu: ${INTERFACE_MTU}
+      name: enp8s0
+      state: up
+      type: ethernet
   nodeSelector:
     kubernetes.io/hostname: ${WORKER}
     node-role.kubernetes.io/worker: ""

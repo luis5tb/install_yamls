@@ -174,6 +174,12 @@ edpm_ansible_runner: ## Debug edpm-ansible playbooks
 	$(eval $(call vars))
 	scripts/edpm-ansible-runner.sh
 
+.PHONY: edpm_computes_bgp
+edpm_computes_bgp: #
+	$(eval $(call vars))
+	scripts/gen-ansibleee-ssh-key.sh
+	scripts/gen-edpm-compute-node-bgp.sh
+
 .PHONY: edpm_compute_repos
 edpm_compute_repos: ## Configure EDPM compute VM with repositories
 	@echo "DEPRECATED: this target has no effect and will be removed. Repo setup is done by the 'repo-setup' ansible service"

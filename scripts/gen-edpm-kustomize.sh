@@ -61,7 +61,6 @@ patches:
       value:
         - name: CtlPlane
           subnetName: subnet1
-          defaultRoute: true
           fixedIP: ${EDPM_COMPUTE_IP}
         - name: InternalApi
           subnetName: subnet1
@@ -69,9 +68,33 @@ patches:
           subnetName: subnet1
         - name: Tenant
           subnetName: subnet1
+        - name: BgpNet1
+          subnetName: subnet1
+          fixedIP: 100.65.1.6
+        - name: BgpNet2
+          subnetName: subnet1
+          fixedIP: 100.64.1.6
     - op: add
       path: /spec/services/0
       value: repo-setup
+    - op: add
+      path: /spec/services/4
+      value: install-frr
+    - op: add
+      path: /spec/services/5
+      value: configure-frr
+    - op: add
+      path: /spec/services/6
+      value: run-frr
+    - op: add
+      path: /spec/services/11
+      value: install-ovn-bgp-agent
+    - op: add
+      path: /spec/services/12
+      value: configure-ovn-bgp-agent
+    - op: add
+      path: /spec/services/13
+      value: run-ovn-bgp-agent
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_chrony_ntp_servers
       value:
@@ -97,6 +120,18 @@ patches:
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleUser
       value: ${EDPM_ANSIBLE_USER:-"cloud-admin"}
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_uplinks
+      value: ['nic2', 'nic3']
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_expose_tenant_networks
+      value: true
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_neighbor_password
+      value: f00barZ
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bridge_mappings
+      value: ['provider1:br-ex', 'provider2:br-vlan']
 EOF
 if oc get pvc ansible-ee-logs -n ${NAMESPACE} 2>&1 1>/dev/null; then
 cat <<EOF >>kustomization.yaml
@@ -130,7 +165,6 @@ cat <<EOF >>kustomization.yaml
       value:
         - name: CtlPlane
           subnetName: subnet1
-          defaultRoute: true
           fixedIP: 192.168.122.$((100+${INDEX}))
         - name: InternalApi
           subnetName: subnet1
@@ -138,9 +172,115 @@ cat <<EOF >>kustomization.yaml
           subnetName: subnet1
         - name: Tenant
           subnetName: subnet1
+        - name: BgpNet1
+          subnetName: subnet2
+          fixedIP: 100.65.$((1+${INDEX})).6
+        - name: BgpNet2
+          subnetName: subnet2
+          fixedIP: 100.64.$((1+${INDEX})).6
 EOF
     done
 fi
+
+# cat <<EOF >>kustomization.yaml
+#     - op: replace
+#       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_network_config_template
+#       value: |
+#         ---
+#         {% set mtu_list = [ctlplane_mtu] %}
+#         {% for network in role_networks %}
+#         {{ mtu_list.append(lookup('vars', networks_lower[network] ~ '_mtu')) }}
+#         {%- endfor %}
+#         {% set min_viable_mtu = mtu_list | max %}
+#         network_config:
+#         - type: interface
+#           name: nic1
+#           mtu: {{ ctlplane_mtu }}
+#           dns_servers: {{ ctlplane_dns_nameservers }}
+#           domain: {{ dns_search_domains }}
+#           routes: [{'destination': '0.0.0.0/0', 'next_hop': {{ ctlplane_gateway_ip }}, 'route_options': 'metric 100'}]
+#           use_dhcp: false
+#           addresses:
+#           - ip_netmask: {{ ctlplane_ip }}/{{ ctlplane_subnet_cidr }}
+#         {% for network in role_networks %}
+#         {% if lookup('vars', networks_lower[network] ~ '_vlan_id') is defined %}
+#         - type: vlan
+#           device: nic1
+#           mtu: {{ lookup('vars', networks_lower[network] ~ '_mtu') }}
+#           vlan_id: {{ lookup('vars', networks_lower[network] ~ '_vlan_id') }}
+#           addresses:
+#           - ip_netmask:
+#               {{ lookup('vars', networks_lower[network] ~ '_ip') }}/{{ lookup('vars', networks_lower[network] ~ '_cidr') }}
+#           routes: {{ lookup('vars', networks_lower[network] ~ '_host_routes') }}
+#         {% endif %}
+#         {%- endfor %}
+#         - type: ovs_bridge
+#           name: {{ neutron_physical_bridge_name }}
+#           use_dhcp: false
+#         - type: ovs_bridge
+#           name: br-vlan
+#           use_dhcp: false
+#         - type: interface
+#           name: nic2
+#           use_dhcp: false
+#           routes: [{'destination': '0.0.0.0/0', 'next_hop': {{ bgp_net1_gateway_ip }}}]
+#           addresses:
+#           - ip_netmask: {{ lookup('vars', 'bgp_net1_ip') }}/30
+#         - type: interface
+#           name: nic3
+#           use_dhcp: false
+#           addresses:
+#           - ip_netmask: {{ lookup('vars', 'bgp_net2_ip') }}/30
+# EOF
+
+cat <<EOF >>kustomization.yaml
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_network_config_template
+      value: |
+        ---
+        {% set mtu_list = [ctlplane_mtu] %}
+        {% for network in role_networks %}
+        {{ mtu_list.append(lookup('vars', networks_lower[network] ~ '_mtu')) }}
+        {%- endfor %}
+        {% set min_viable_mtu = mtu_list | max %}
+        network_config:
+        - type: interface
+          name: nic1
+          mtu: {{ ctlplane_mtu }}
+          dns_servers: {{ ctlplane_dns_nameservers }}
+          domain: {{ dns_search_domains }}
+          use_dhcp: false
+          addresses:
+          - ip_netmask: {{ ctlplane_ip }}/{{ ctlplane_subnet_cidr }}
+        {% for network in role_networks %}
+        {% if lookup('vars', networks_lower[network] ~ '_vlan_id') is defined %}
+        - type: vlan
+          device: nic1
+          mtu: {{ lookup('vars', networks_lower[network] ~ '_mtu') }}
+          vlan_id: {{ lookup('vars', networks_lower[network] ~ '_vlan_id') }}
+          addresses:
+          - ip_netmask:
+              {{ lookup('vars', networks_lower[network] ~ '_ip') }}/{{ lookup('vars', networks_lower[network] ~ '_cidr') }}
+          routes: {{ lookup('vars', networks_lower[network] ~ '_host_routes') }}
+        {% endif %}
+        {%- endfor %}
+        - type: ovs_bridge
+          name: {{ neutron_physical_bridge_name }}
+          use_dhcp: false
+        - type: ovs_bridge
+          name: br-vlan
+          use_dhcp: false
+        - type: interface
+          name: nic2
+          use_dhcp: false
+          addresses:
+          - ip_netmask: {{ lookup('vars', 'bgp_net1_ip') }}/30
+        - type: interface
+          name: nic3
+          use_dhcp: false
+          addresses:
+          - ip_netmask: {{ lookup('vars', 'bgp_net2_ip') }}/30
+EOF
 
 kustomization_add_resources
 
