@@ -72,9 +72,33 @@ patches:
           subnetName: subnet1
         - name: Tenant
           subnetName: subnet1
+        - name: BgpNet1
+          subnetName: subnet1
+          fixedIP: 100.65.$((1+${INDEX})).6
+        - name: BgpNet2
+          subnetName: subnet1
+          fixedIP: 100.64.0.6
     - op: add
       path: /spec/services/0
       value: repo-setup
+    - op: add
+      path: /spec/services/4
+      value: install-frr
+    - op: add
+      path: /spec/services/5
+      value: install-ovn-bgp-agent
+    - op: add
+      path: /spec/services/7
+      value: configure-frr
+    - op: add
+      path: /spec/services/8
+      value: configure-ovn-bgp-agent
+    - op: add
+      path: /spec/services/10
+      value: run-frr
+    - op: add
+      path: /spec/services/13
+      value: run-ovn-bgp-agent
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_chrony_ntp_servers
       value:
@@ -103,6 +127,18 @@ patches:
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleUser
       value: ${EDPM_ANSIBLE_USER:-"cloud-admin"}
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_uplinks
+      value: ['nic2', 'nic3']
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_expose_tenant_networks
+      value: true
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_neighbor_password
+      value: f00barZ
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bridge_mappings
+      value: ['provider1:br-ex', 'provider2:br-vlan']
 EOF
 if oc get pvc ansible-ee-logs -n ${NAMESPACE} 2>&1 1>/dev/null; then
 cat <<EOF >>kustomization.yaml
@@ -144,9 +180,49 @@ cat <<EOF >>kustomization.yaml
           subnetName: subnet1
         - name: Tenant
           subnetName: subnet1
+        - name: BgpNet1
+          subnetName: subnet1
+          fixedIP: 100.65.$((1+${INDEX})).6
+        - name: BgpNet2
+          subnetName: subnet1
+          fixedIP: 100.64.0.6
 EOF
     done
 fi
+
+# This is not working
+#cat <<EOF >>kustomization.yaml
+#    - op: replace
+#      path: /spec/roles/edpm-compute/nodeTemplate/networkConfig
+#      value:
+#        template: |
+#          ---
+#          network_config:
+#          - type: interface
+#            name: nic1
+#            mtu: {{ lookup('vars', 'ctlplane_mtu') }}
+#            dns_servers: {{ lookup('vars', 'ctlplane_dns_nameservers') }}
+#            domain: {{ lookup('vars', 'dns_search_domains') }}
+#            routes: {{ lookup('vars', 'ctlplane_host_routes') }}
+#            use_dhcp: false
+#            addresses:
+#            - ip_netmask: {{ lookup('vars', 'ctlplane_ip') }}/{{ lookup('vars', 'ctlplane_subnet_cidr') }}
+#          {% for network in lookup('vars', 'role_networks') %}
+#          - type: vlan
+#            device: nic1
+#            mtu: {{ lookup('vars', networks_lower[network] ~ '_mtu') }}
+#            vlan_id: {{ lookup('vars', networks_lower[network] ~ '_vlan_id') }}
+#            addresses:
+#            - ip_netmask: {{ lookup('vars', networks_lower[network] ~ '_ip') }}/{{ lookup('vars', networks_lower[network] ~ '_cidr') }}
+#            routes: {{ lookup('vars', networks_lower[network] ~ '_host_routes') }}
+#          {% endfor %}
+#          - type: ovs_bridge
+#            name: {{ lookup('vars', 'neutron_physical_bridge_name') }}
+#            use_dhcp: false
+#          - type: ovs_bridge
+#            name: br-vlan
+#            use_dhcp: false
+#EOF
 
 kustomization_add_resources
 

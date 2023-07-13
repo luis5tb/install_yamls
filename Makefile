@@ -6,7 +6,7 @@ NAMESPACE                ?= openstack
 PASSWORD                 ?= 12345678
 SECRET                   ?= osp-secret
 OUT                      ?= ${PWD}/out
-TIMEOUT                  ?= 300s
+TIMEOUT                  ?= 1200s
 BAREMETAL_TIMEOUT        ?= 20m
 DBSERVICE           ?= galera
 ifeq ($(DBSERVICE), galera)
@@ -175,6 +175,11 @@ NEUTRON_KUTTL_CONF      ?= ${OPERATOR_BASE_DIR}/neutron-operator/kuttl-test.yaml
 NEUTRON_KUTTL_DIR       ?= ${OPERATOR_BASE_DIR}/neutron-operator/test/kuttl/tests
 NEUTRON_KUTTL_NAMESPACE ?= neutron-kuttl-tests
 
+# BGP
+BGP_ASN    ?= 64999
+BGP_LEAF_1 ?= 100.65.4.1
+BGP_LEAF_2 ?= 100.64.0.1
+
 # Cinder
 CINDER_IMG             ?= quay.io/openstack-k8s-operators/cinder-operator-index:latest
 CINDER_REPO            ?= https://github.com/openstack-k8s-operators/cinder-operator.git
@@ -285,6 +290,7 @@ BMH_NAMESPACE       ?= ${NAMESPACE}
 
 # Dataplane Operator
 DATAPLANE_IMG                                    ?= quay.io/openstack-k8s-operators/dataplane-operator-index:latest
+#DATAPLANE_IMG                                    ?= quay.io/ltomasbo/dataplane-operator-index:latest
 DATAPLANE_REPO                                   ?= https://github.com/openstack-k8s-operators/dataplane-operator.git
 DATAPLANE_BRANCH                                 ?= main
 OPENSTACK_DATAPLANENODESET                       ?= config/samples/dataplane_v1beta1_openstackdataplanenodeset.yaml
@@ -294,12 +300,16 @@ DATAPLANE_NODESET_BAREMETAL_CR                   ?= ${OPERATOR_BASE_DIR}/datapla
 DATAPLANE_ANSIBLE_SECRET                         ?=dataplane-ansible-ssh-private-key-secret
 DATAPLANE_ANSIBLE_USER                           ?=
 DATAPLANE_COMPUTE_IP                             ?=192.168.122.100
-DATAPLANE_TOTAL_NODES                            ?=1
-DATAPLANE_RUNNER_IMG                             ?=quay.io/openstack-k8s-operators/openstack-ansibleee-runner:latest
-DATAPLANE_NETWORK_CONFIG_TEMPLATE                ?=templates/single_nic_vlans/single_nic_vlans.j2
+DATAPLANE_COMPUTE_1_IP                           ?=192.168.122.101
+DATAPLANE_COMPUTE_2_IP                           ?=192.168.122.102
+DATAPLANE_TOTAL_NODES                            ?=2
+DATAPLANE_RUNNER_IMG                             ?=quay.io/ltomasbo/openstack-ansibleee-runner:l3
+#DATAPLANE_NETWORK_CONFIG_TEMPLATE                ?=templates/single_nic_vlans/single_nic_vlans.j2
+DATAPLANE_NETWORK_CONFIG_TEMPLATE                ?=templates/single_nic_vlans/single_nic_vlans_bgp.j2
 DATAPLANE_NETWORK_INTERFACE_NAME                 ?=eth0
 DATAPLANE_SSHD_ALLOWED_RANGES                    ?=['192.168.122.0/24']
-DATAPLANE_CHRONY_NTP_SERVER                      ?=pool.ntp.org
+#DATAPLANE_CHRONY_NTP_SERVER                      ?=pool.ntp.org
+DATAPLANE_CHRONY_NTP_SERVER                      ?=clock.redhat.com
 DATAPLANE_REGISTRY_URL                           ?=quay.io/podified-antelope-centos9
 DATAPLANE_CONTAINER_TAG                          ?=current-podified
 DATAPLANE_KUTTL_CONF                             ?= ${OPERATOR_BASE_DIR}/dataplane-operator/kuttl-test.yaml
@@ -1791,6 +1801,9 @@ netattach_cleanup: ## Deletes the network-attachment-definitions
 .PHONY: metallb
 metallb: export NAMESPACE=metallb-system
 metallb: export INTERFACE=${NNCP_INTERFACE}
+metallb: export ASN=${BGP_ASN}
+metallb: export LEAF_1=${BGP_LEAF_1}
+metallb: export LEAF_2=${BGP_LEAF_2}
 metallb: ## installs metallb operator in the metallb-system namespace
 	$(eval $(call vars,$@,metallb))
 	bash scripts/gen-namespace.sh
@@ -1810,11 +1823,16 @@ metallb: ## installs metallb operator in the metallb-system namespace
 metallb_config: export NAMESPACE=metallb-system
 metallb_config: export CTLPLANE_METALLB_POOL=${METALLB_POOL}
 metallb_config: export INTERFACE=${NNCP_INTERFACE}
+metallb_config: export ASN=${BGP_ASN}
+metallb_config: export LEAF_1=${BGP_LEAF_1}
+metallb_config: export LEAF_2=${BGP_LEAF_2}
 metallb_config: metallb_config_cleanup ## creates the IPAddressPools and l2advertisement resources
 	$(eval $(call vars,$@,metallb))
 	bash scripts/gen-olm-metallb.sh
 	oc apply -f ${DEPLOY_DIR}/ipaddresspools.yaml
 	oc apply -f ${DEPLOY_DIR}/l2advertisement.yaml
+	oc apply -f ${DEPLOY_DIR}/bgppeers.yaml
+	oc apply -f ${DEPLOY_DIR}/bgpadvertisement.yaml
 
 .PHONY: metallb_config_cleanup
 metallb_config_cleanup: export NAMESPACE=metallb-system
@@ -1822,7 +1840,9 @@ metallb_config_cleanup: ## deletes the IPAddressPools and l2advertisement resour
 	$(eval $(call vars,$@,metallb))
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/ipaddresspools.yaml
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/l2advertisement.yaml
-	${CLEANUP_DIR_CMD} ${DEPLOY_DIR}/ipaddresspools.yaml ${DEPLOY_DIR}/l2advertisement.yaml
+	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgppeers.yaml
+	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgpadvertisement.yaml
+	${CLEANUP_DIR_CMD} ${DEPLOY_DIR}/ipaddresspools.yaml ${DEPLOY_DIR}/l2advertisement.yaml ${DEPLOY_DIR}/bgppeers.yaml ${DEPLOY_DIR}/bgpadvertisement.yaml
 
 ##@ MANILA
 .PHONY: manila_prep
