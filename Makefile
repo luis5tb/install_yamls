@@ -307,7 +307,7 @@ DATAPLANE_COMPUTE_IP                             ?=192.168.122.100
 DATAPLANE_COMPUTE_1_IP                           ?=192.168.122.101
 DATAPLANE_COMPUTE_2_IP                           ?=192.168.122.102
 DATAPLANE_TOTAL_NODES                            ?=2
-DATAPLANE_RUNNER_IMG                             ?=quay.io/ltomasbo/openstack-ansibleee-runner:download
+DATAPLANE_RUNNER_IMG                             ?=quay.io/ltomasbo/openstack-ansibleee-runner:ovn
 #DATAPLANE_RUNNER_IMG                             ?=quay.io/openstack-k8s-operators/openstack-ansibleee-runner:latest
 DATAPLANE_NETWORK_INTERFACE_NAME                 ?=eth0
 DATAPLANE_SSHD_ALLOWED_RANGES                    ?=['192.168.122.0/24']
@@ -590,6 +590,8 @@ edpm_deploy_prep: export EDPM_SSHD_ALLOWED_RANGES=${DATAPLANE_SSHD_ALLOWED_RANGE
 edpm_deploy_prep: export EDPM_CHRONY_NTP_SERVER=${DATAPLANE_CHRONY_NTP_SERVER}
 edpm_deploy_prep: export EDPM_REGISTRY_URL=${DATAPLANE_REGISTRY_URL}
 edpm_deploy_prep: export EDPM_CONTAINER_TAG=${DATAPLANE_CONTAINER_TAG}
+#edpm_deploy_prep: export EDPM_OVN_NB_DBS=$(shell oc get ovndbcluster ovndbcluster-nb -o json | jq -r '.status.networkAttachments."openstack/internalapi"')
+#edpm_deploy_prep: export EDPM_OVN_SB_DBS=$(shell oc get ovndbcluster ovndbcluster-sb -o json | jq -r '.status.networkAttachments."openstack/internalapi"')
 edpm_deploy_prep: edpm_deploy_cleanup ## prepares the CR to install the data plane
 	$(eval $(call vars,$@,dataplane))
 	mkdir -p ${OPERATOR_BASE_DIR} ${OPERATOR_DIR} ${DEPLOY_DIR}
