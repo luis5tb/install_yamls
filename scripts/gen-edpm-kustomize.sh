@@ -74,10 +74,8 @@ patches:
           subnetName: subnet1
         - name: BgpNet1
           subnetName: subnet1
-          fixedIP: 100.65.$((1+${INDEX})).6
         - name: BgpNet2
           subnetName: subnet1
-          fixedIP: 100.64.0.6
     - op: add
       path: /spec/services/0
       value: repo-setup
