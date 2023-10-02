@@ -74,6 +74,12 @@ patches:
         - name: BgpNet2
           subnetName: subnet1
           fixedIP: 100.64.1.6
+        - name: BgpMainNet
+          subnetName: subnet1
+          fixedIP: 172.30.1.2
+        - name: BgpMainNet6
+          subnetName: subnet1
+          fixedIP: f00d:f00d:f00d:f00d:f00d:f00d:f00d:0012
     - op: add
       path: /spec/services/0
       value: repo-setup
@@ -130,6 +136,12 @@ patches:
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_neighbor_password
       value: f00barZ
     - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_ipv4_src_network
+      value: bgp_main_net
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_ipv6_src_network
+      value: bgp_main_net6
+    - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bridge_mappings
       value: ['provider1:br-ex', 'provider2:br-vlan']
 EOF
@@ -173,11 +185,18 @@ cat <<EOF >>kustomization.yaml
         - name: Tenant
           subnetName: subnet1
         - name: BgpNet1
-          subnetName: subnet2
+          subnetName: subnet$((1+${INDEX}))
           fixedIP: 100.65.$((1+${INDEX})).6
         - name: BgpNet2
-          subnetName: subnet2
+          subnetName: subnet$((1+${INDEX}))
           fixedIP: 100.64.$((1+${INDEX})).6
+        - name: BgpMainNet
+          subnetName: subnet$((1+${INDEX}))
+          fixedIP: 172.30.$((1+${INDEX})).2
+        - name: BgpMainNet6
+          subnetName: subnet$((1+${INDEX}))
+          fixedIP: 172.30.$((1+${INDEX})).2
+          fixedIP: f00d:f00d:f00d:f00d:f00d:f00d:f00d:00$((1+${INDEX}))2
 EOF
     done
 fi
@@ -253,7 +272,7 @@ cat <<EOF >>kustomization.yaml
           addresses:
           - ip_netmask: {{ ctlplane_ip }}/{{ ctlplane_subnet_cidr }}
         {% for network in role_networks %}
-        {% if lookup('vars', networks_lower[network] ~ '_vlan_id') is defined %}
+        {% if lookup('vars', networks_lower[network] ~ '_vlan_id', default='') %}
         - type: vlan
           device: nic1
           mtu: {{ lookup('vars', networks_lower[network] ~ '_mtu') }}
@@ -280,6 +299,11 @@ cat <<EOF >>kustomization.yaml
           use_dhcp: false
           addresses:
           - ip_netmask: {{ lookup('vars', 'bgp_net2_ip') }}/30
+        - type: interface
+          name: lo
+          addresses:
+          - ip_netmask: {{ lookup('vars', 'bgp_main_net_ip') }}/32
+          - ip_netmask: {{ lookup('vars', 'bgp_main_net6_ip') }}/128
 EOF
 
 kustomization_add_resources
