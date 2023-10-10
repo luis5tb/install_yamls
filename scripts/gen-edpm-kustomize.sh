@@ -172,6 +172,9 @@ patches:
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_provider_networks_pool_prefixes
       value: '172.16.0.0/16'
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_ovn_routing
+      value: true
 EOF
 if oc get pvc ansible-ee-logs -n ${NAMESPACE} 2>&1 1>/dev/null; then
 cat <<EOF >>kustomization.yaml
