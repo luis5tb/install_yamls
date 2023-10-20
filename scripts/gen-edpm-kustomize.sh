@@ -148,6 +148,12 @@ cat <<EOF >>kustomization.yaml
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_ovn_routing
       value: true
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_nb_dbs
+      value: ${EDPM_OVN_NB_DBS}
+    - op: replace
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_uplinks
+      value: ['br-ex', 'br-ex-2']
 EOF
 fi
 
