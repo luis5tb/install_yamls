@@ -191,8 +191,10 @@ NEUTRON_KUTTL_NAMESPACE ?= neutron-kuttl-tests
 # BGP
 NETWORK_BGP           ?= false
 BGP_ASN               ?= 64999
+BGP_PEER_ASN          ?= 64999
 BGP_LEAF_1            ?= 100.65.4.1
 BGP_LEAF_2            ?= 100.64.4.1
+BGP_SOURCE_IP         ?= 172.30.4.2
 NNCP_BGP_1_INTERFACE  ?= enp7s0
 NNCP_BGP_2_INTERFACE  ?= enp8s0
 NNCP_BGP_1_IP_ADDRESS ?= 100.65.4.2
@@ -1852,6 +1854,7 @@ nncp: export INTERFACE_BGP_1=${NNCP_BGP_1_INTERFACE}
 nncp: export INTERFACE_BGP_2=${NNCP_BGP_2_INTERFACE}
 nncp: export BGP_1_IP_ADDRESS=${NNCP_BGP_1_IP_ADDRESS}
 nncp: export BGP_2_IP_ADDRESS=${NNCP_BGP_2_IP_ADDRESS}
+nncp: export LO_IP_ADDRESS=${BGP_SOURCE_IP}
 endif
 nncp: export CTLPLANE_IP_ADDRESS_PREFIX=${NNCP_CTLPLANE_IP_ADDRESS_PREFIX}
 nncp: export CTLPLANE_IP_ADDRESS_SUFFIX=${NNCP_CTLPLANE_IP_ADDRESS_SUFFIX}
@@ -1902,8 +1905,10 @@ netattach_cleanup: ## Deletes the network-attachment-definitions
 metallb: export NAMESPACE=metallb-system
 metallb: export INTERFACE=${NNCP_INTERFACE}
 metallb: export ASN=${BGP_ASN}
+metallb: export PEER_ASN=${BGP_PEER_ASN}
 metallb: export LEAF_1=${BGP_LEAF_1}
 metallb: export LEAF_2=${BGP_LEAF_2}
+metallb: export SOURCE_IP=${BGP_SOURCE_IP}
 metallb: ## installs metallb operator in the metallb-system namespace
 	$(eval $(call vars,$@,metallb))
 	bash scripts/gen-namespace.sh
@@ -1924,8 +1929,10 @@ metallb_config: export NAMESPACE=metallb-system
 metallb_config: export CTLPLANE_METALLB_POOL=${METALLB_POOL}
 metallb_config: export INTERFACE=${NNCP_INTERFACE}
 metallb_config: export ASN=${BGP_ASN}
+metallb_config: export PEER_ASN=${BGP_PEER_ASN}
 metallb_config: export LEAF_1=${BGP_LEAF_1}
 metallb_config: export LEAF_2=${BGP_LEAF_2}
+metallb_config: export SOURCE_IP=${BGP_SOURCE_IP}
 metallb_config: metallb_config_cleanup ## creates the IPAddressPools and l2advertisement resources
 	$(eval $(call vars,$@,metallb))
 	bash scripts/gen-olm-metallb.sh
@@ -1934,6 +1941,7 @@ metallb_config: metallb_config_cleanup ## creates the IPAddressPools and l2adver
 ifeq ($(NETWORK_BGP), true)
 	oc apply -f ${DEPLOY_DIR}/bgppeers.yaml
 	oc apply -f ${DEPLOY_DIR}/bgpadvertisement.yaml
+	oc apply -f ${DEPLOY_DIR}/bgpextras.yaml
 endif
 
 .PHONY: metallb_config_cleanup
@@ -1944,7 +1952,8 @@ metallb_config_cleanup: ## deletes the IPAddressPools and l2advertisement resour
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/l2advertisement.yaml
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgppeers.yaml
 	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgpadvertisement.yaml
-	${CLEANUP_DIR_CMD} ${DEPLOY_DIR}/ipaddresspools.yaml ${DEPLOY_DIR}/l2advertisement.yaml ${DEPLOY_DIR}/bgppeers.yaml ${DEPLOY_DIR}/bgpadvertisement.yaml
+	oc delete --ignore-not-found=true -f ${DEPLOY_DIR}/bgpextras.yaml
+	${CLEANUP_DIR_CMD} ${DEPLOY_DIR}/ipaddresspools.yaml ${DEPLOY_DIR}/l2advertisement.yaml ${DEPLOY_DIR}/bgppeers.yaml ${DEPLOY_DIR}/bgpadvertisement.yaml ${DEPLOY_DIR}/bgpextras.yaml
 
 ##@ MANILA
 .PHONY: manila_prep
