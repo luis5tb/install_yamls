@@ -152,8 +152,8 @@ cat <<EOF >>kustomization.yaml
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_nb_dbs
       value: ${EDPM_OVN_NB_DBS}
     - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_uplinks
-      value: ['br-ex', 'br-ex-2']
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_peers
+      value: ['100.64.1.5', '100.65.1.5']
 EOF
 fi
 
@@ -187,9 +187,11 @@ cat <<EOF >>kustomization.yaml
 EOF
 if [ -n "$BGP" ]; then
 cat <<EOF >>kustomization.yaml
-    - op: replace
-      path: /spec/nodes/edpm-compute-${INDEX}/ansible/ansibleVars/edpm_ovn_bgp_agent_ovn_peer_ips
-      value: ['100.64.$((1+${INDEX})).5', '100.65.$((1+${INDEX})).5']
+    - op: add
+      path: /spec/nodes/edpm-compute-${INDEX}/ansible/ansibleVars
+      value:
+        edpm_ovn_bgp_agent_ovn_peer_ips: ['100.64.$((1+${INDEX})).5', '100.65.$((1+${INDEX})).5']
+        edpm_frr_bgp_peers: ['100.64.$((1+${INDEX})).5', '100.65.$((1+${INDEX})).5']
 EOF
 fi
 cat <<EOF >>kustomization.yaml
