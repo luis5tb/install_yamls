@@ -128,17 +128,11 @@ cat <<EOF >>kustomization.yaml
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bridge_mappings
       value: ['bgp:br-provider']
     - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_expose_tenant_networks
-      value: true
-    - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_ovn_external_nics
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_local_ovn_external_nics
       value: ['eth1', 'eth2']
     - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_ovn_peer_ips
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_local_ovn_peer_ips
       value: ['100.64.1.5', '100.65.1.5']
-    - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_driver
-      value: nb_ovn_bgp_driver
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_exposing_method
       value: ovn
@@ -146,7 +140,7 @@ cat <<EOF >>kustomization.yaml
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_provider_networks_pool_prefixes
       value: '172.16.0.0/16'
     - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_ovn_routing
+      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_local_ovn_routing
       value: true
     - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_nb_dbs
@@ -190,7 +184,7 @@ cat <<EOF >>kustomization.yaml
     - op: add
       path: /spec/nodes/edpm-compute-${INDEX}/ansible/ansibleVars
       value:
-        edpm_ovn_bgp_agent_ovn_peer_ips: ['100.64.$((1+${INDEX})).5', '100.65.$((1+${INDEX})).5']
+        edpm_ovn_bgp_agent_local_ovn_peer_ips: ['100.64.$((1+${INDEX})).5', '100.65.$((1+${INDEX})).5']
         edpm_frr_bgp_peers: ['100.64.$((1+${INDEX})).5', '100.65.$((1+${INDEX})).5']
 EOF
 fi
