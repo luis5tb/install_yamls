@@ -143,9 +143,6 @@ cat <<EOF >>kustomization.yaml
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_bgp_agent_local_ovn_routing
       value: true
     - op: replace
-      path: /spec/nodeTemplate/ansible/ansibleVars/edpm_ovn_nb_dbs
-      value: ${EDPM_OVN_NB_DBS}
-    - op: replace
       path: /spec/nodeTemplate/ansible/ansibleVars/edpm_frr_bgp_peers
       value: ['100.64.1.5', '100.65.1.5']
 EOF

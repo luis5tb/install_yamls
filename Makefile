@@ -630,7 +630,6 @@ edpm_deploy_prep: export EDPM_CONTAINER_TAG=${DATAPLANE_CONTAINER_TAG}
 edpm_deploy_prep: export EDPM_CONTAINER_PREFIX=${DATAPLANE_CONTAINER_PREFIX}
 ifeq ($(NETWORK_BGP), true)
 edpm_deploy_prep: export BGP=enabled
-edpm_deploy_prep: export EDPM_OVN_NB_DBS=$(shell oc get ovndbcluster ovndbcluster-nb -o json | jq -r '.status.networkAttachments."openstack/internalapi"')
 endif
 edpm_deploy_prep: edpm_deploy_cleanup ## prepares the CR to install the data plane
 	$(eval $(call vars,$@,dataplane))
